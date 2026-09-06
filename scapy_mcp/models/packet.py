@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from scapy_mcp.models.layers import LayerSpec
+# NOTE: `LayerSpec` must stay a runtime import. Ruff's TC001 wants it inside a
+# `TYPE_CHECKING` block, but pydantic resolves field annotations at runtime to
+# build the validator. Under `TYPE_CHECKING` the model silently becomes
+# incomplete (`__pydantic_complete__ is False`) and every `model_validate` call
+# raises `PydanticUserError: ... is not fully defined`.
+from scapy_mcp.models.layers import LayerSpec  # noqa: TC001
 
 
 class PacketSpec(BaseModel):

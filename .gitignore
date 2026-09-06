@@ -38,6 +38,7 @@ coverage.xml
 # Project-local
 .oneiric_cache/
 .crackerjack/
+.lycheecache
 .lycheecache/
 dist/
 

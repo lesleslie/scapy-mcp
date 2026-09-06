@@ -88,6 +88,33 @@ exclude_also = [
     "if __name__ == .__main__.:",
 ]
 
+[tool.codespell]
+# htmlcov/ is generated coverage output (gitignored) and trips on truncated
+# identifiers in its HTML; .venv/ and dist/ are likewise not our source.
+skip = "./.venv,./htmlcov,./dist,./uv.lock,./.git,./tests/fixtures"
+# Networking terms codespell mistakes for typos:
+#   nd  -> IPv6 Neighbor Discovery (as in "ARP/ND/RAW frames")
+ignore-words-list = "nd"
+
+[tool.creosote]
+# Flat layout: the package lives at the repo root, not under src/.
+paths = ["scapy_mcp"]
+deps-file = "pyproject.toml"
+sections = ["project.dependencies"]
+# Both are mandatory per the plan's Global Constraints but are not imported
+# until Phase 1 (mcp-common supplies the health/baseline tool surface in
+# server.py; httpx2 is the ecosystem-standard HTTP client). Declared now so the
+# dependency set is stable; remove these exclusions once Phase 1 imports them.
+exclude-deps = ["httpx2", "mcp-common"]
+
+[[tool.refurb.amend]]
+# The settings tests assert the *exact* closed-position defaults for the
+# transmit controls. `x is False` and `x == []` are deliberately stricter than
+# the truthiness forms refurb suggests: `not x` would also pass for 0, "",
+# None, or [], which would let a mistyped default slip through a security gate.
+path = "tests"
+ignore = ["FURB115", "FURB149", "FURB184"]
+
 [tool.uv]
 constraint-dependencies = [
     "aiohttp>=3.14.3",

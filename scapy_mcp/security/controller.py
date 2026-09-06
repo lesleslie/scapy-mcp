@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import ipaddress
+from typing import TYPE_CHECKING
 
+# IP/IPv6/ARP/Ether are used at runtime by `haslayer`, so they stay imported.
 from scapy.layers.inet import IP
 from scapy.layers.inet6 import IPv6
 from scapy.layers.l2 import ARP, Ether
-from scapy.packet import Packet
 
-from scapy_mcp.config.settings import ScapySettings
 from scapy_mcp.utils.exceptions import EmissionRefusedError
+
+if TYPE_CHECKING:
+    # Annotation-only: `EmissionController` is a plain class, not a pydantic
+    # model, so these are never resolved at runtime.
+    from scapy.packet import Packet
+
+    from scapy_mcp.config.settings import ScapySettings
 
 _IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 _IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
@@ -75,7 +82,7 @@ class EmissionController:
             raise EmissionRefusedError(
                 "L3 destination could not be parsed",
                 control="transmit_allow_l3_cidrs",
-                reason="unparseable destination address",
+                reason="unparsable destination address",
             )
 
         family_nets = [net for version, net in self._cidrs if version == dst.version]

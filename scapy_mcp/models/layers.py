@@ -80,14 +80,6 @@ class RawSpec(_Base):
 
 
 LayerSpec = Annotated[
-    EtherSpec
-    | ARPSpec
-    | IPSpec
-    | IPv6Spec
-    | TCPSpec
-    | UDPSpec
-    | ICSpec
-    | DNSLayerSpec
-    | RawSpec,
+    EtherSpec | ARPSpec | IPSpec | IPv6Spec | TCPSpec | UDPSpec | ICSpec | DNSLayerSpec | RawSpec,
     Field(discriminator="type"),
 ]

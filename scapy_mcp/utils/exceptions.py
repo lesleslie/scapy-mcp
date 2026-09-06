@@ -74,5 +74,5 @@ class DissectionError(ScapyError):
             "error": "dissection_failed",
             "reason": self.reason,
             "offset": self.offset,
-            "partial_layers": list(self.partial_layers),
+            "partial_layers": self.partial_layers.copy(),
         }
