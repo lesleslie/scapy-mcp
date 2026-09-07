@@ -42,6 +42,9 @@ coverage.xml
 .lycheecache/
 dist/
 
-# Packet captures (test fixtures should be in tests/fixtures/, gitignored)
+# Packet captures (random pcap files stay gitignored; test fixtures
+# in tests/fixtures/*.pcap commit through the negation below)
 *.pcap
 *.pcapng
+!tests/fixtures/*.pcap
+!tests/fixtures/*.pcapng
