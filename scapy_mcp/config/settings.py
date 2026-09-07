@@ -19,6 +19,8 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from mcp_common.auth.config import AuthConfig
+
 # scapy_mcp/config/settings.py -> config -> scapy_mcp -> <repo root>
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -35,6 +37,14 @@ class ScapySettings(BaseSettings):
     http_port: int | None = 3056
     tool_profile: str = "full"
     log_level: str = "INFO"
+
+    # Auth (Task 14). Optional — ``Runtime`` only constructs the
+    # BearerTokenMiddleware when ``auth.enabled`` is True. Configured via
+    # ``settings/scapy-mcp.yaml`` (``auth: {enabled: true, ...}``) or via
+    # ``SCAPY_MCP_AUTH__*`` env vars (pydantic-settings nested delimiter
+    # is ``__``). Default is None (auth disabled) so a fresh install boots
+    # without auth — matching the pre-Task-14 behavior.
+    auth: AuthConfig | None = None
 
     # Capture
     default_iface: str | None = None

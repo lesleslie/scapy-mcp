@@ -2053,7 +2053,7 @@ wheels = [
 [[package]]
 name = "mcp-common"
 version = "0.24.5"
-source = { registry = "https://pypi.org/simple" }
+source = { editable = "../mcp-common" }
 dependencies = [
     { name = "cryptography" },
     { name = "fastmcp" },
@@ -2067,9 +2067,39 @@ dependencies = [
     { name = "typer" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d9/17/8bb5ef2841f359198dc7799df33b801e18aafc4dc9225df3edeaff183189/mcp_common-0.24.5.tar.gz", hash = "sha256:d8dcf50781259a21d2266fcf4b395fea32614f3ccb92c7d6097d94d93093dfe0", size = 1031951, upload-time = "2026-09-06T22:49:56.352Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/b7/bec418a0abe5d7c9b951504f4e7ca636bfdab49510ae796ba6283e76ea0a/mcp_common-0.24.5-py3-none-any.whl", hash = "sha256:79ec3e6255f2729279406f6ff547988089bab7c255e1463576c1986db95cbd7a", size = 405833, upload-time = "2026-09-06T22:49:54.84Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "cryptography", specifier = ">=48.0.0" },
+    { name = "fastmcp", specifier = ">=3.4.0" },
+    { name = "oneiric", specifier = ">=0.16.0" },
+    { name = "psutil", specifier = ">=7.2.2" },
+    { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "pydantic-settings", specifier = ">=2.14.1" },
+    { name = "pyjwt", specifier = ">=2.8.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "rich", specifier = ">=15.0.0" },
+    { name = "typer", specifier = ">=0.26.7" },
+    { name = "websockets", specifier = ">=16.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "crackerjack", specifier = ">=0.65.3" },
+    { name = "pytest-benchmark", specifier = ">=5.2.3" },
+    { name = "respx", specifier = ">=0.23.1" },
+    { name = "uv-bump", specifier = ">=0.5.0" },
+]
+llm = [{ name = "openai", specifier = ">=2.41.0" }]
+macos-prompts = [
+    { name = "pyobjc-core", specifier = ">=12.2" },
+    { name = "pyobjc-framework-cocoa", specifier = ">=10.0" },
+]
+terminal-prompts = [{ name = "prompt-toolkit", specifier = ">=3.0.52" }]
+treesitter = [
+    { name = "tree-sitter", specifier = ">=0.25.2" },
+    { name = "tree-sitter-go", specifier = ">=0.25.0" },
+    { name = "tree-sitter-python", specifier = ">=0.25.0" },
 ]
 
 [[package]]
@@ -3498,7 +3528,7 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=2.12.0" },
     { name = "hatchling", marker = "extra == 'dev'", specifier = ">=1.25.0" },
     { name = "httpx2", specifier = ">=0.28.1" },
-    { name = "mcp-common", specifier = ">=0.18.0" },
+    { name = "mcp-common", editable = "../mcp-common" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.9.0" },
     { name = "oneiric", specifier = ">=0.16.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
