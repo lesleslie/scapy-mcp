@@ -30,7 +30,9 @@ from fastapi import FastAPI, Response
 from fastmcp import FastMCP
 from mcp_common.auth.config import AuthConfig
 from mcp_common.auth.core import JWTIdentityProvider
+from mcp_common.auth.error_middleware import AuthErrorTranslationMiddleware
 from mcp_common.auth.health import AuthHealth
+from mcp_common.auth.identity import validate_auth_config
 from mcp_common.auth.middleware import BearerTokenMiddleware
 from mcp_common.auth.provider import IdentityProvider, ProviderHealth
 from mcp_common.baseline_tools import register_baseline_tools, seed_liveness_context
@@ -93,6 +95,11 @@ class Runtime:
         auth_middleware = self._build_auth_middleware()
         if auth_middleware is not None:
             app.add_middleware(auth_middleware)
+        # B2 fix: AuthError subclasses raised by BearerTokenMiddleware must be
+        # translated to JSON-RPC -32001 with OAuth-style data. Install the
+        # translator unconditionally so AuthErrors surfaced by future
+        # middleware (or by @require_auth) hit the same shape end-to-end.
+        app.add_middleware(AuthErrorTranslationMiddleware())
 
         # Baseline tools + liveness seed must precede domain registration so
         # the four ``EXPECTED_BASELINE`` names exist even if domain setup
@@ -201,6 +208,11 @@ class Runtime:
         auth_cfg: AuthConfig | None = getattr(self.settings, "auth", None)
         if auth_cfg is None or not auth_cfg.enabled:
             return None
+
+        # B6 fix: fail-loud at startup if the auth config is inconsistent
+        # (empty trusted_issuers, missing default_provider, etc.) rather than
+        # at the first request. Mirrors mcp-common's startup-check contract.
+        validate_auth_config(auth_cfg)
 
         providers: dict[str, IdentityProvider] = {}
         identity_providers = auth_cfg.identity_providers or {}
