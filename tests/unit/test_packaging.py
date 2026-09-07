@@ -35,4 +35,4 @@ def test_wheel_contains_package() -> None:
 def test_coverage_floor_is_70() -> None:
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
     addopts = pyproject["tool"]["pytest"]["ini_options"]["addopts"]
-    assert "--cov-fail-under=70" in addopts
+    assert "--cov-fail-under=85" in addopts

@@ -60,3 +60,55 @@ def test_standard_profile_unregisters_transmit_tools() -> None:
 def test_build_runtime_returns_runtime(settings: ScapySettings) -> None:
     runtime = build_runtime(settings=settings)
     assert runtime.settings == settings
+
+
+def test_build_asgi_app_exposes_readyz(settings: ScapySettings) -> None:
+    """``build_asgi_app`` registers a ``/readyz`` route. Before any required
+    feed cycles succeed it returns 503; after at least one successful
+    cycle per required feed it returns 200. This is the wiring-discipline
+    ``/readyz`` 503 contract from spec §5.5.
+    """
+    from scapy_mcp.feeds import FEEDS, required_feeds_healthy
+
+    # Reset required feeds so we are guaranteed a 503.
+    for name in ("craft", "dissect", "pcap"):
+        FEEDS[name].cycles_total = 0
+        FEEDS[name].entities_count = 0
+        FEEDS[name].errors_total = 0
+
+    # Cold start: /readyz must report degraded.
+    assert required_feeds_healthy() is False
+
+    runtime = build_runtime(settings=settings)
+    asgi = runtime.build_asgi_app()
+    # The /readyz route is registered via Starlette's ``add_route``.
+    assert any(
+        getattr(r, "path", None) == "/readyz"
+        for r in getattr(asgi, "routes", [])
+    )
+
+    # After at least one successful cycle per required feed, /readyz returns 200.
+    for name in ("craft", "dissect", "pcap"):
+        FEEDS[name].record_cycle(entities=1)
+    assert required_feeds_healthy() is True
+
+
+def test_full_profile_includes_transmit_tools(settings: ScapySettings) -> None:
+    """Sanity: ``full`` profile (the default) MUST include transmit tools."""
+    settings.tool_profile = "full"
+    app = _build(settings)
+    names = _tool_names(app)
+    assert "transmit_packet" in names
+    assert "probe_packet" in names
+
+
+def test_minimal_profile_only_exposes_health(settings: ScapySettings) -> None:
+    settings.tool_profile = "minimal"
+    app = _build(settings)
+    names = _tool_names(app)
+    # Baseline tools survive every profile.
+    assert "discover_tools" in names
+    assert "get_liveness" in names
+    # Domain tools are absent in minimal.
+    assert "craft_packet" not in names
+    assert "transmit_packet" not in names

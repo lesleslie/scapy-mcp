@@ -97,3 +97,48 @@ def test_controller_returns_none_on_full_allow() -> None:
 
     pkt = IP(dst="10.5.5.5") / UDP(dport=53)
     ctrl.check(pkt, is_probe=False)  # no raise
+
+
+def test_transmit_count_must_be_positive() -> None:
+    import asyncio
+
+    settings = ScapySettings(_env_file=None)
+    from scapy_mcp.utils.exceptions import ConfigurationError
+
+    with pytest.raises(ConfigurationError):
+        asyncio.run(
+            transmit_packet(
+                settings=settings,
+                packet_bytes=b"\x00",
+                iface="lo0",
+                count=0,
+            ),
+        )
+
+
+def test_transmit_ipv6_in_allowlist_passes() -> None:
+    """L3 allow-list miss on IPv6 family — refused per-family."""
+    settings = ScapySettings(_env_file=None)
+    settings.transmit_enabled = True
+    settings.transmit_allow_l3_cidrs = ["10.0.0.0/8"]
+    ctrl = EmissionController(settings=settings)
+    from scapy.layers.inet6 import IPv6
+
+    ipv6_pkt = IPv6(dst="2001:db8::1")
+    with pytest.raises(EmissionRefusedError) as exc_info:
+        ctrl.check(ipv6_pkt, is_probe=False)
+    assert exc_info.value.control == "transmit_allow_l3_cidrs"
+
+
+def test_transmit_broadcast_dst_refused() -> None:
+    """Broadcast destination refused when transmit_allow_broadcast is off."""
+    settings = ScapySettings(_env_file=None)
+    settings.transmit_enabled = True
+    settings.transmit_allow_l3_cidrs = ["10.0.0.0/8"]
+    ctrl = EmissionController(settings=settings)
+    from scapy.layers.inet import IP
+
+    pkt = IP(dst="255.255.255.255")
+    with pytest.raises(EmissionRefusedError) as exc_info:
+        ctrl.check(pkt, is_probe=False)
+    assert exc_info.value.control == "transmit_allow_broadcast"

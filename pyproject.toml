@@ -74,7 +74,7 @@ ignore = ["E501"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = ["requires_bpf: requires /dev/bpf* access (capture tests)"]
-addopts = "--cov=scapy_mcp --cov-report=term --cov-report=html --cov-fail-under=70"
+addopts = "--cov=scapy_mcp --cov-report=term --cov-report=html --cov-fail-under=85"
 
 [tool.coverage.run]
 source = ["scapy_mcp"]

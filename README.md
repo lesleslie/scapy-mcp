@@ -1,61 +1,79 @@
 # scapy-mcp
 
-> **Scaffold status: PyPI name reservation.** This package is a placeholder scaffold to claim
-> the `scapy-mcp` name on PyPI. The MCP server is not yet implemented.
+MCP server that wraps [scapy](https://scapy.net) for packet crafting, dissection,
+pcap staging, and live capture. Tools operate on a worker that holds a
+`scapy_mcp.config.settings.ScapySettings` instance and respects a four-stage
+transmit policy before any frame leaves the host.
 
-MCP server wrapping [Scapy](https://scapy.net/) — interactive packet
-manipulation library. Provides access to:
+## Tools
 
-- **Packet crafting** — build L2/L3/L4 packets from Pythonic layers
-- **Dissection** — decode captured packet bytes into structured summaries
-- **Live capture** — sniff interfaces with optional BPF filters
-- **PCAP I/O** — read and write `.pcap` / `.pcapng` files
-- **Protocol layers** — TCP, UDP, ICMP, ARP, DNS, TLS, raw
+| Group    | Tool             | Purpose |
+|----------|------------------|---------|
+| craft    | `craft_packet`   | Build a `Packet` from a `LayerSpec` discriminated union. |
+| dissect  | `dissect_bytes`  | Parse raw bytes into layers + summary text. |
+| pcap     | `read_pcap`      | Read a pcap from `pcap_write_dir` with offset/limit. |
+| pcap     | `write_pcap`     | Stage a pcap into `pcap_write_dir` (paths outside the dir refused). |
+| capture  | `capture_start`  | Start a BPF-filtered capture (optional feed). |
+| capture  | `capture_stop`   | Stop the in-progress capture. |
+| capture  | `capture_read`   | Read a range of captured frames. |
+| transmit | `transmit_packet`| Send a single packet after every transmit control passes. |
+| transmit | `probe_packet`   | One-shot emit at a small BPF, used to confirm the surface works. |
 
-## Reserve the PyPI name
+## Four transmit controls
+
+Every `transmit_packet` call is checked against:
+
+1. **Master kill-switch** (`transmit_enabled: bool`, default `false`). The default
+   refuses every frame — you must set `SCAPY_MCP_TRANSMIT_ENABLED=true` to
+   permit emission at all.
+2. **L3 CIDR allow-list** (`transmit_allow_l3_cidrs: list[str]`). Set to
+   `["0.0.0.0/0"]` for unrestricted L3; production deployments pin the
+   specific CIDRs the worker is allowed to reach.
+3. **L2 destination allow-flag** (`transmit_allow_l2: bool`, default `false`).
+   Pure ARP / ND / RAW frames require this flag; L3 packets do not.
+4. **Broadcast opt-in** (`transmit_allow_broadcast: bool`, default `false`).
+   Even after the L2/L3 allow-list, broadcasts refuse unless this is `true`.
+
+A fifth control caps probe-target count: `transmit_max_probe_targets: int`
+(default `16`).
+
+A refusal emits an `EmissionRefusedError` with the failing `control` name and a
+human-readable reason. The wrapper logs a `scapy-write-would-refuse` /
+`scapy-transmit-refused` warning so the refusal is visible without polluting
+the caller's error stream.
+
+## BPF probe (`capture`)
+
+Capture is OPTIONAL. When `/dev/bpf*` is missing the function refuses with
+`CapabilityUnavailableError` and the `capture` feed is marked unavailable.
+`/readyz` stays 200 because capture is not a required feed.
+
+## Deterministic fixtures
+
+Tests do **not** open raw sockets. All packet construction is exercised
+against in-memory fixtures under `tests/fixtures/`. Each fixture includes a
+hand-crafted `bytes()` body that round-trips through `craft_packet` →
+`rdpcap`/`wrpcap` → `dissect_bytes`. No real network frames in the suite.
+
+Regenerate via:
 
 ```bash
-cd /Users/les/Projects/scapy-mcp
-uv build
-uv publish  # uses UV_PUBLISH_TOKEN from env
+python -m scripts.gen_pcap_fixtures
 ```
 
-The package name `scapy-mcp` is currently free on PyPI (verified 2026-08-31).
-Publishing a placeholder 0.1.0 release locks the name.
+## Default = closed-by-default transmit
 
-## Connection to flowscape
+The shipped defaults cannot emit a frame:
 
-The `flowscape` design spec
-(`docs/superpowers/specs/2026-08-31-flowscape-design.md`) explicitly lists
-`scapy-mcp` as a future integration under **Out of scope / future work**:
+```
+transmit_enabled = false
+transmit_allow_l3_cidrs = []
+transmit_allow_l2 = false
+transmit_allow_broadcast = false
+```
 
-> scapy-mcp / unifi-mcp integration — Enrichment plugins for `heuristics.py`
-> / `graph.py` — v2+
-
-This scaffold is the name-reservation placeholder for that v2 integration.
-
-## Architecture (planned)
-
-Mirrors the `raindropio-mcp` pattern in this ecosystem:
-
-- `scapy` as the core packet manipulation dependency
-- `fastmcp` for the MCP server surface (tools = scapy operations)
-- `oneiric` for layered config (`settings/scapy-mcp.yaml`, `local.yaml`,
-  env vars) — configures default interface, capture mode (live vs offline),
-  optional `SCAPY_MCP_PRIVILEGED_HELPER` for `/dev/bpf*` ACLs
-- `mcp-common` for bootstrap, health endpoints
-- `pydantic`/`pydantic-settings` for typed config models
-- Live capture requires root or a ChmodBPF-style helper (same constraint
-  documented for flowscape)
-
-## Status
-
-| Phase | State |
-|---|---|
-| PyPI name reservation | **pending** (run `uv publish`) |
-| Spec / plan | not written |
-| Implementation | not started |
-| Tests | not started |
+A worker installs only what its operator explicitly approves. See
+`scapy_mcp/config/settings.py` for the full settings surface.
 
 ## License
 

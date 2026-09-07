@@ -128,10 +128,9 @@ class Runtime:
         if self.asgi_app is not None:
             return self.asgi_app
         mcp_app = self.build_mcp_app()
-        asgi = mcp_app.streamable_http_app()  # type: ignore[no-any-return]
+        asgi = mcp_app.http_app()  # type: ignore[no-any-return]
 
-        @asgi.custom_route("/readyz", methods=["GET"])
-        async def _readyz() -> Response:
+        async def _readyz(_request: object) -> Response:
             if not required_feeds_healthy():
                 return Response(
                     content='{"status":"degraded","reason":"required feed not healthy"}',
@@ -143,6 +142,8 @@ class Runtime:
                 status_code=200,
                 media_type="application/json",
             )
+
+        asgi.add_route("/readyz", _readyz, methods=["GET"])  # type: ignore[arg-type]
 
         self.asgi_app = asgi
         return asgi

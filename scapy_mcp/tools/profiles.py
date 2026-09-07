@@ -70,7 +70,7 @@ def _build_registration_map(bundle: ServerBundle) -> dict[str, object]:
 
         @app.tool(name="craft_packet")
         async def _craft_packet(layers: list[dict]) -> dict:
-            spec = PacketSpec(layers=[LayerAdapter.validate(l) for l in layers])
+            spec = PacketSpec(layers=[LayerAdapter.validate_python(l) for l in layers])
             result = craft_packet(settings=bundle.settings, spec=spec)
             return {
                 "summary": result["summary"],
@@ -133,7 +133,7 @@ def _build_registration_map(bundle: ServerBundle) -> dict[str, object]:
         @app.tool(name="transmit_packet")
         async def _transmit_packet(packet: dict, iface: str, count: int = 1) -> dict:
             spec = PacketSpec(
-                layers=[LayerAdapter.validate(l) for l in packet["layers"]],
+                layers=[LayerAdapter.validate_python(l) for l in packet["layers"]],
             )
             crafted = craft_packet(settings=bundle.settings, spec=spec)
             return await transmit_packet(
@@ -148,7 +148,7 @@ def _build_registration_map(bundle: ServerBundle) -> dict[str, object]:
             packet: dict, iface: str, targets: list[str], timeout_seconds: float = 2.0,
         ) -> dict:
             spec = PacketSpec(
-                layers=[LayerAdapter.validate(l) for l in packet["layers"]],
+                layers=[LayerAdapter.validate_python(l) for l in packet["layers"]],
             )
             crafted = craft_packet(settings=bundle.settings, spec=spec)
             return await probe_packet(
