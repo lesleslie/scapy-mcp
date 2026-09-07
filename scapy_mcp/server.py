@@ -225,7 +225,7 @@ class Runtime:
             if auth_cfg.resolved_secret is None:
                 raise RuntimeError(
                     "auth.identity_providers['jwt'] is configured but "
-                    "auth.secret is None — set SCAPY_MCP_AUTH_SECRET (or "
+                    "auth.secret is None — set SCAPY_MCP_AUTH__SECRET (or "
                     "BODAI_SHARED_SECRET), or remove the JWT provider."
                 )
             providers["jwt"] = JWTIdentityProvider(

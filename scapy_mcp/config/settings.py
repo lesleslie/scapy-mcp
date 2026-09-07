@@ -30,6 +30,7 @@ class ScapySettings(BaseSettings):
         env_prefix="SCAPY_MCP_",
         env_file=str(PROJECT_ROOT / ".env"),
         env_file_encoding="utf-8",
+        env_nested_delimiter="__",
         extra="ignore",
     )
 
