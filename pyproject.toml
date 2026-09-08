@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scapy-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server wrapping Scapy — packet crafting, dissection, and live capture"
 readme = "README.md"
 license = "BSD-3-Clause"
@@ -70,6 +70,18 @@ target-version = "py314"
 select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "TCH"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+# Pydantic v2 + `from __future__ import annotations` + TYPE_CHECKING is a latent
+# bug class: the `auth: AuthConfig | None` field annotation must be resolvable
+# at runtime so pydantic can build the model, so the third-party `AuthConfig`
+# import has to be a real runtime import — TC002 cannot apply here. Mirror
+# the same exemption for the local `AuthConfig | None` annotation in server.py
+# since `auth_cfg` is also used at runtime (not just as a type annotation).
+# See project memory `pydantic-future-annotations-forward-ref.md` (opera-cloud-mcp,
+# mahavishnu prefect_models — 31+32+5 failures all fixed by reverting this rule).
+"scapy_mcp/config/settings.py" = ["TC002"]
+"scapy_mcp/server.py" = ["TC002"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
@@ -125,3 +137,8 @@ constraint-dependencies = [
 # scapy-mcp's Runtime wires in). Without this override uv installs the
 # published PyPI 0.24.5 wheel, which lacks the auth package.
 sources = { mcp-common = { path = "../mcp-common", editable = true } }
+
+[dependency-groups]
+dev = [
+    "crackerjack>=0.80.8",
+]

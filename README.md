@@ -7,17 +7,17 @@ transmit policy before any frame leaves the host.
 
 ## Tools
 
-| Group    | Tool             | Purpose |
+| Group | Tool | Purpose |
 |----------|------------------|---------|
-| craft    | `craft_packet`   | Build a `Packet` from a `LayerSpec` discriminated union. |
-| dissect  | `dissect_bytes`  | Parse raw bytes into layers + summary text. |
-| pcap     | `read_pcap`      | Read a pcap from `pcap_write_dir` with offset/limit. |
-| pcap     | `write_pcap`     | Stage a pcap into `pcap_write_dir` (paths outside the dir refused). |
-| capture  | `capture_start`  | Start a BPF-filtered capture (optional feed). |
-| capture  | `capture_stop`   | Stop the in-progress capture. |
-| capture  | `capture_read`   | Read a range of captured frames. |
+| craft | `craft_packet` | Build a `Packet` from a `LayerSpec` discriminated union. |
+| dissect | `dissect_bytes` | Parse raw bytes into layers + summary text. |
+| pcap | `read_pcap` | Read a pcap from `pcap_write_dir` with offset/limit. |
+| pcap | `write_pcap` | Stage a pcap into `pcap_write_dir` (paths outside the dir refused). |
+| capture | `capture_start` | Start a BPF-filtered capture (optional feed). |
+| capture | `capture_stop` | Stop the in-progress capture. |
+| capture | `capture_read` | Read a range of captured frames. |
 | transmit | `transmit_packet`| Send a single packet after every transmit control passes. |
-| transmit | `probe_packet`   | One-shot emit at a small BPF, used to confirm the surface works. |
+| transmit | `probe_packet` | One-shot emit at a small BPF, used to confirm the surface works. |
 
 ## Four transmit controls
 
@@ -26,12 +26,12 @@ Every `transmit_packet` call is checked against:
 1. **Master kill-switch** (`transmit_enabled: bool`, default `false`). The default
    refuses every frame — you must set `SCAPY_MCP_TRANSMIT_ENABLED=true` to
    permit emission at all.
-2. **L3 CIDR allow-list** (`transmit_allow_l3_cidrs: list[str]`). Set to
+1. **L3 CIDR allow-list** (`transmit_allow_l3_cidrs: list[str]`). Set to
    `["0.0.0.0/0"]` for unrestricted L3; production deployments pin the
    specific CIDRs the worker is allowed to reach.
-3. **L2 destination allow-flag** (`transmit_allow_l2: bool`, default `false`).
+1. **L2 destination allow-flag** (`transmit_allow_l2: bool`, default `false`).
    Pure ARP / ND / RAW frames require this flag; L3 packets do not.
-4. **Broadcast opt-in** (`transmit_allow_broadcast: bool`, default `false`).
+1. **Broadcast opt-in** (`transmit_allow_broadcast: bool`, default `false`).
    Even after the L2/L3 allow-list, broadcasts refuse unless this is `true`.
 
 A fifth control caps probe-target count: `transmit_max_probe_targets: int`

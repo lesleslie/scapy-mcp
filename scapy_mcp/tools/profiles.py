@@ -5,13 +5,30 @@ transmit), ``minimal`` (health only). The ``register_all_tool_groups`` helper
 unconditionally attaches every tool; ``apply_tool_profile`` from mcp-common
 then prunes groups whose profile does not include them.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from fastmcp import FastMCP
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
-from scapy_mcp.config.settings import ScapySettings
+    from fastmcp import FastMCP
+
+    from scapy_mcp.config.settings import ScapySettings
+
+from mcp_common.tools.dispatch import ALL_TOOLS, ToolProfile
+from pydantic import TypeAdapter
+
+from scapy_mcp.models.layers import LayerSpec
+
+# `LayerSpec` is the documented runtime import; LayerAdapter keeps the
+# discriminated-union construction explicit so TypeAdapter stays out of the
+# per-call site. Defined at module load time (not inside the registration
+# closures) so every caller observes the same singleton and the E402 trip-wire
+# stays clean.
+LayerAdapter: TypeAdapter[LayerSpec] = TypeAdapter(LayerSpec)
 
 SCAPY_MANDATORY_GROUPS: set[str] = {"health_tools"}
 TRANSMIT_GROUPS: set[str] = {"transmit_tools"}
@@ -34,9 +51,17 @@ class ServerBundle:
 # Stable profile -> group-name list consumed by ``apply_tool_profile``.
 # ``_select_profile_groups`` returns ``registrations[profile]`` directly; the
 # dispatch then looks up each name in ``registration_map`` and invokes the
-# corresponding registration function.
-PROFILE_REGISTRATIONS: dict[str, list[str]] = {
-    "full": [
+# corresponding registration function. Keys must be ``ToolProfile`` enum
+# values (NOT strings) so the dispatch's ``registrations.get(ToolProfile.X)``
+# lookup is type-correct. Value type mirrors mcp-common's
+# ``_apply_tool_profile_async`` parameter signature exactly — ``dict`` is
+# invariant in V, so a narrower value type (just ``list[...]``) fails the
+# assignability check.
+PROFILE_REGISTRATIONS: dict[
+    ToolProfile,
+    list[str | Callable[[FastMCP], Awaitable[None] | None]] | type[ALL_TOOLS],
+] = {
+    ToolProfile.FULL: [
         "craft_tools",
         "dissect_tools",
         "pcap_tools",
@@ -44,7 +69,7 @@ PROFILE_REGISTRATIONS: dict[str, list[str]] = {
         "transmit_tools",
         "health_tools",
     ],
-    "standard": [
+    ToolProfile.STANDARD: [
         "craft_tools",
         "dissect_tools",
         "pcap_tools",
@@ -52,25 +77,33 @@ PROFILE_REGISTRATIONS: dict[str, list[str]] = {
         # transmit_tools intentionally omitted — closed-by-default in standard.
         "health_tools",
     ],
-    "minimal": [
+    ToolProfile.MINIMAL: [
         "health_tools",
     ],
 }
 
 
-def _build_registration_map(bundle: ServerBundle) -> dict[str, object]:
+def _build_registration_map(
+    bundle: ServerBundle,
+) -> dict[str, Callable[[FastMCP], Awaitable[None] | None]]:
     """Each entry is a Callable[[FastMCP], None] bound to the supplied bundle.
 
     ``_apply_tool_profile_async`` invokes each entry as ``fn(server)``;
     therefore the registration functions MUST take only the server.
+
+    Return type is widened to ``Awaitable[None] | None`` so the dict satisfies
+    mcp-common's ``Callable[[FastMCP], Awaitable[None] | None]`` parameter
+    exactly — ``dict`` is invariant in V, so ``Callable[..., None]`` alone
+    won't be accepted as ``Callable[..., Awaitable[None] | None]``.
     """
+
     def _register_craft(app: FastMCP) -> None:
         from scapy_mcp.models.packet import PacketSpec
         from scapy_mcp.tools.craft import craft_packet
 
         @app.tool(name="craft_packet")
         async def _craft_packet(layers: list[dict]) -> dict:
-            spec = PacketSpec(layers=[LayerAdapter.validate_python(l) for l in layers])
+            spec = PacketSpec(layers=[LayerAdapter.validate_python(layer) for layer in layers])
             result = craft_packet(settings=bundle.settings, spec=spec)
             return {
                 "summary": result["summary"],
@@ -133,7 +166,7 @@ def _build_registration_map(bundle: ServerBundle) -> dict[str, object]:
         @app.tool(name="transmit_packet")
         async def _transmit_packet(packet: dict, iface: str, count: int = 1) -> dict:
             spec = PacketSpec(
-                layers=[LayerAdapter.validate_python(l) for l in packet["layers"]],
+                layers=[LayerAdapter.validate_python(layer) for layer in packet["layers"]],
             )
             crafted = craft_packet(settings=bundle.settings, spec=spec)
             return await transmit_packet(
@@ -145,10 +178,13 @@ def _build_registration_map(bundle: ServerBundle) -> dict[str, object]:
 
         @app.tool(name="probe_packet")
         async def _probe_packet(
-            packet: dict, iface: str, targets: list[str], timeout_seconds: float = 2.0,
+            packet: dict,
+            iface: str,
+            targets: list[str],
+            timeout_seconds: float = 2.0,
         ) -> dict:
             spec = PacketSpec(
-                layers=[LayerAdapter.validate_python(l) for l in packet["layers"]],
+                layers=[LayerAdapter.validate_python(layer) for layer in packet["layers"]],
             )
             crafted = craft_packet(settings=bundle.settings, spec=spec)
             return await probe_packet(
@@ -180,19 +216,11 @@ def _build_registration_map(bundle: ServerBundle) -> dict[str, object]:
     }
 
 
-def register_all_tool_groups(app: FastMCP, bundle: ServerBundle) -> dict[str, object]:
+def register_all_tool_groups(
+    app: FastMCP, bundle: ServerBundle
+) -> dict[str, Callable[[FastMCP], Awaitable[None] | None]]:
     """Attach every tool group to ``app``; profile gating happens after this."""
     mapping = _build_registration_map(bundle)
     for fn in mapping.values():
         fn(app)
     return mapping
-
-
-# `LayerSpec` is the documented runtime import; LayerAdapter keeps the
-# discriminated-union construction explicit so TypeAdapter stays out of the
-# per-call site.
-from pydantic import TypeAdapter
-
-from scapy_mcp.models.layers import LayerSpec  # noqa: E402
-
-LayerAdapter: TypeAdapter = TypeAdapter(LayerSpec)

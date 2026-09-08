@@ -16,10 +16,9 @@ import tempfile
 from functools import lru_cache
 from pathlib import Path
 
+from mcp_common.auth.config import AuthConfig
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from mcp_common.auth.config import AuthConfig
 
 # scapy_mcp/config/settings.py -> config -> scapy_mcp -> <repo root>
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent

@@ -19,16 +19,18 @@ when ``settings.auth.enabled`` is true and registers it via
 (``verifications_total``, ``errors_total``, ``last_updated_timestamp``,
 ``cycles_total``) under the ``auth`` component.
 """
+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 
-from fastapi import FastAPI, Response
+from fastapi import Response
 from fastmcp import FastMCP
-from mcp_common.auth.config import AuthConfig
+from fastmcp.server.http import StarletteWithLifespan
 from mcp_common.auth.core import JWTIdentityProvider
 from mcp_common.auth.error_middleware import AuthErrorTranslationMiddleware
 from mcp_common.auth.health import AuthHealth
@@ -45,10 +47,14 @@ from scapy_mcp.feeds import as_components, required_feeds_healthy
 from scapy_mcp.tools.profiles import (
     PROFILE_REGISTRATIONS,
     SCAPY_MANDATORY_GROUPS,
-    TRANSMIT_GROUPS,
     ServerBundle,
     register_all_tool_groups,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from mcp_common.auth.config import AuthConfig
 
 APP_NAME = "scapy-mcp"
 
@@ -56,14 +62,14 @@ APP_NAME = "scapy-mcp"
 def _run_async_safely(coro: Any) -> Any:
     """Bridge from sync (CLI / tests) into the async tool surface."""
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
     except RuntimeError:
         return asyncio.run(coro)
     with ThreadPoolExecutor(max_workers=1) as ex:
         return ex.submit(asyncio.run, coro).result()
 
 
-def build_runtime(*, settings: ScapySettings | None = None) -> "Runtime":
+def build_runtime(*, settings: ScapySettings | None = None) -> Runtime:
     s = settings or get_settings()
     return Runtime(settings=s)
 
@@ -71,7 +77,7 @@ def build_runtime(*, settings: ScapySettings | None = None) -> "Runtime":
 class Runtime:
     def __init__(self, *, settings: ScapySettings) -> None:
         self.settings = settings
-        self.asgi_app: FastAPI | None = None
+        self.asgi_app: StarletteWithLifespan | None = None
         self._mcp_app: FastMCP | None = None
         # Task 14: auth wiring state. Both are populated lazily by
         # _build_auth_middleware() during build_mcp_app_async().
@@ -133,39 +139,44 @@ class Runtime:
         ):
             local = getattr(app, "_local_provider", None)
             if local is not None and hasattr(local, "remove_tool"):
-                try:
+                with contextlib.suppress(KeyError, ValueError):
                     local.remove_tool(tool_name)
-                except (KeyError, ValueError):
-                    pass
 
         profile_name = self.settings.tool_profile
+
+        # ``register_all_fn`` is the FULL + ALL_TOOLS re-registration callable.
+        # The contract is ``Callable[[FastMCP], None]`` — mcp-common's dispatch
+        # discards the return value. Use a named helper rather than a lambda
+        # so the side-effect intent (and the explicit ``-> None``) is visible
+        # to the type checker; a lambda that returned the mapping dict would
+        # mismatch ``Awaitable[None] | None``.
+        def _register_all(srv: FastMCP) -> None:
+            register_all_tool_groups(srv, bundle)
+
         await _apply_tool_profile_async(
             app,
             profile=ToolProfile(profile_name),
             profile_env_var="SCAPY_MCP_TOOL_PROFILE",
             registrations=PROFILE_REGISTRATIONS,
             registration_map=registration_map,
-            register_all_fn=lambda srv: register_all_tool_groups(srv, bundle),
+            register_all_fn=_register_all,
             mandatory_groups=SCAPY_MANDATORY_GROUPS,
-            essential_tool_names=frozenset(
-                {
-                    "discover_tools",
-                    "get_liveness",
-                    "get_readiness",
-                    "health_check_all",
-                },
-            ),
+            essential_tool_names={
+                "discover_tools",
+                "get_liveness",
+                "get_readiness",
+                "health_check_all",
+            },
             discovery_fn=None,
         )
 
         self._mcp_app = app
         return app
 
-    def build_asgi_app(self) -> FastAPI:
+    def build_asgi_app(self) -> StarletteWithLifespan:
         if self.asgi_app is not None:
             return self.asgi_app
-        mcp_app = self.build_mcp_app()
-        asgi = mcp_app.http_app()  # type: ignore[no-any-return]
+        asgi = self.build_mcp_app().http_app()
 
         async def _readyz(_request: object) -> Response:
             if not required_feeds_healthy():
@@ -267,8 +278,7 @@ class Runtime:
             if mw is None:
                 return None
             provider_healths: dict[str, ProviderHealth] = {
-                name: ProviderHealth(name=name, state="healthy")
-                for name in self._auth_providers
+                name: ProviderHealth(name=name, state="healthy") for name in self._auth_providers
             }
             return AuthHealth(
                 providers=provider_healths,

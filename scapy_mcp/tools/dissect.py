@@ -4,20 +4,23 @@ Returns a dict with ``layers`` (list of layer names) and ``summary``. Malformed
 input raises :class:`DissectionError` with a structured payload
 (``{error, reason, offset, partial_layers}``) per spec §6.3.
 """
+
 from __future__ import annotations
 
 import base64
 import binascii
+import logging
 import struct
+from typing import TYPE_CHECKING
 
 from scapy.error import Scapy_Exception
 from scapy.layers.l2 import Ether
 
-from scapy_mcp.config.settings import ScapySettings
 from scapy_mcp.feeds import FEEDS
 from scapy_mcp.utils.exceptions import DissectionError
 
-import logging
+if TYPE_CHECKING:
+    from scapy_mcp.config.settings import ScapySettings
 
 logger = logging.getLogger("scapy_mcp.tools.dissect")
 
@@ -62,7 +65,7 @@ def dissect_bytes(
         try:
             partial_pkt = Ether(raw[:14])
             partial = [p.__name__ for p in partial_pkt.layers()]
-        except (Scapy_Exception, ValueError, IndexError, struct.error):
+        except Scapy_Exception, ValueError, IndexError, struct.error:
             logger.debug("partial-dissect-fallback-failed", exc_info=True)
         FEEDS["dissect"].record_cycle(error=str(exc))
         raise DissectionError(

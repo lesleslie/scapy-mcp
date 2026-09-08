@@ -6,21 +6,25 @@ containment guard). When a packet would be refused by the transmit
 controls, a structured ``scapy-write-would-refuse`` warning is logged but
 the write still proceeds — pcap staging is an authoring tool, not emission.
 """
+
 from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from scapy.layers.l2 import Ether
 from scapy.utils import rdpcap, wrpcap
 
-from scapy_mcp.config.settings import ScapySettings
 from scapy_mcp.feeds import FEEDS
 from scapy_mcp.security.controller import EmissionController
 from scapy_mcp.utils.exceptions import (
     ConfigurationError,
     EmissionRefusedError,
 )
+
+if TYPE_CHECKING:
+    from scapy_mcp.config.settings import ScapySettings
 
 logger = logging.getLogger("scapy_mcp.tools.pcap")
 
@@ -99,7 +103,8 @@ def read_pcap(
     if not p.exists():
         FEEDS["pcap"].record_cycle(error=f"file not found: {path}")
         raise ConfigurationError(
-            f"file not found: {path}", context={"path": path},
+            f"file not found: {path}",
+            context={"path": path},
         )
     packets = rdpcap(str(p))
     window = packets[offset : offset + limit]

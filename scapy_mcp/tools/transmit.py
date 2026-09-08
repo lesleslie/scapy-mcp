@@ -9,26 +9,29 @@ caller cannot starve the sniffer (spec §5.7).
 The ``_executor`` singleton is sized from ``capture_executor_workers`` and
 created lazily on the first call.
 """
+
 from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from scapy.layers.inet import IP, UDP  # noqa: F401  — registration side-effect
 from scapy.layers.inet6 import IPv6
-from scapy.layers.l2 import ARP, Ether
-from scapy.packet import Packet, Raw
+from scapy.layers.l2 import Ether
 from scapy.sendrecv import send, sendp, srp
 
-from scapy_mcp.config.settings import ScapySettings
 from scapy_mcp.security.controller import EmissionController
 from scapy_mcp.utils.exceptions import (
     ConfigurationError,
-    EmissionRefusedError,
 )
 
-_EXECUTOR: Optional[ThreadPoolExecutor] = None
+if TYPE_CHECKING:
+    from scapy.packet import Packet
+
+    from scapy_mcp.config.settings import ScapySettings
+
+_EXECUTOR: ThreadPoolExecutor | None = None
 
 
 def _executor(settings: ScapySettings) -> ThreadPoolExecutor:

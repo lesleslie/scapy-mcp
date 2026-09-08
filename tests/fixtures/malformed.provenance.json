@@ -1,5 +1,5 @@
 {
-  "generator": "scripts.gen_pcap_fixtures",
+  "deterministic": true,
   "fixed_epoch_seconds": 1700000000.0,
-  "deterministic": true
+  "generator": "scripts.gen_pcap_fixtures"
 }

@@ -15,6 +15,7 @@ Five feeds:
 
 Required feeds: when any is unhealthy, ``/readyz`` returns 503.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

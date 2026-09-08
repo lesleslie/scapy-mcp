@@ -6,6 +6,7 @@ Phase 1 tools support (Ether, IP, IPv6, TCP, UDP, ICMP, DNS, ARP).
 
 Run from repo root: ``python -m scripts.gen_pcap_fixtures``
 """
+
 from __future__ import annotations
 
 import json
@@ -54,8 +55,15 @@ def http_get() -> None:
     packets = []
 
     # SYN
-    pkt = eth / IP(src="10.0.0.1", dst="10.0.0.2") / TCP(
-        sport=12345, dport=80, flags="S", seq=1000,
+    pkt = (
+        eth
+        / IP(src="10.0.0.1", dst="10.0.0.2")
+        / TCP(
+            sport=12345,
+            dport=80,
+            flags="S",
+            seq=1000,
+        )
     )
     _stamp(pkt)
     packets.append(pkt)
@@ -124,27 +132,21 @@ def dns_query() -> None:
 
 
 def arp_request() -> None:
-    who_has = (
-        Ether(src="aa:aa:aa:aa:aa:aa", dst="ff:ff:ff:ff:ff:ff")
-        / ARP(
-            op="who-has",
-            pdst="10.0.0.1",
-            psrc="10.0.0.2",
-            hwsrc="aa:aa:aa:aa:aa:aa",
-            hwdst="ff:ff:ff:ff:ff:ff",
-        )
+    who_has = Ether(src="aa:aa:aa:aa:aa:aa", dst="ff:ff:ff:ff:ff:ff") / ARP(
+        op="who-has",
+        pdst="10.0.0.1",
+        psrc="10.0.0.2",
+        hwsrc="aa:aa:aa:aa:aa:aa",
+        hwdst="ff:ff:ff:ff:ff:ff",
     )
     _stamp(who_has)
 
-    is_at = (
-        Ether(src="bb:bb:bb:bb:bb:bb", dst="aa:aa:aa:aa:aa:aa")
-        / ARP(
-            op="is-at",
-            pdst="10.0.0.2",
-            psrc="10.0.0.1",
-            hwsrc="bb:bb:bb:bb:bb:bb",
-            hwdst="aa:aa:aa:aa:aa:aa",
-        )
+    is_at = Ether(src="bb:bb:bb:bb:bb:bb", dst="aa:aa:aa:aa:aa:aa") / ARP(
+        op="is-at",
+        pdst="10.0.0.2",
+        psrc="10.0.0.1",
+        hwsrc="bb:bb:bb:bb:bb:bb",
+        hwdst="aa:aa:aa:aa:aa:aa",
     )
     _stamp(is_at)
 

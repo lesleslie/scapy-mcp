@@ -4,9 +4,11 @@ The function walks the ``PacketSpec.layers`` list bottom-up: ``layers[0]``
 becomes the wire-most layer and ``layers[-1]`` becomes the payload. Every
 call increments the ``craft`` feed cycle counter.
 """
+
 from __future__ import annotations
 
 import base64
+from typing import TYPE_CHECKING
 
 from scapy.layers.dns import DNS, DNSQR
 from scapy.layers.inet import ICMP, IP, TCP, UDP
@@ -14,7 +16,6 @@ from scapy.layers.inet6 import IPv6
 from scapy.layers.l2 import ARP, Ether
 from scapy.packet import Packet, Raw
 
-from scapy_mcp.config.settings import ScapySettings
 from scapy_mcp.feeds import FEEDS
 from scapy_mcp.models.layers import (
     ARPSpec,
@@ -28,8 +29,11 @@ from scapy_mcp.models.layers import (
     TCPSpec,
     UDPSpec,
 )
-from scapy_mcp.models.packet import PacketSpec
 from scapy_mcp.utils.exceptions import ConfigurationError
+
+if TYPE_CHECKING:
+    from scapy_mcp.config.settings import ScapySettings
+    from scapy_mcp.models.packet import PacketSpec
 
 
 def _build_layer(spec: LayerSpec) -> Packet:
@@ -66,10 +70,13 @@ def craft_packet(*, settings: ScapySettings, spec: PacketSpec) -> dict:
             "at least one layer required",
             context={"spec": spec.model_dump()},
         )
-    pkt: Packet | None = None
-    for layer in spec.layers:
-        built = _build_layer(layer)
-        pkt = built if pkt is None else pkt / built
+    # First layer is the wire-most (layers[0] in spec = outermost on the wire);
+    # subsequent layers stack on top. Initialising ``pkt`` with the first
+    # build keeps the type narrowed to ``Packet`` (no ``Packet | None`` carrier),
+    # which is what the type checker needs at ``bytes(pkt)`` / ``pkt.summary()``.
+    pkt = _build_layer(spec.layers[0])
+    for layer in spec.layers[1:]:
+        pkt = pkt / _build_layer(layer)
     raw_bytes = bytes(pkt)
     summary = pkt.summary()
     FEEDS["craft"].record_cycle(entities=1)

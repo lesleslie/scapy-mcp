@@ -8,27 +8,30 @@ feed.
 ``AsyncSniffer`` is used when scapy exposes it; otherwise the plan's
 ``sniff(stop_filter=...)`` executor path is the fallback.
 """
+
 from __future__ import annotations
 
 import logging
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from scapy.sendrecv import AsyncSniffer
 
-from scapy_mcp.config.settings import ScapySettings
 from scapy_mcp.feeds import FEEDS
 from scapy_mcp.utils.exceptions import (
     CapabilityUnavailableError,
     ConfigurationError,
 )
 
+if TYPE_CHECKING:
+    from scapy_mcp.config.settings import ScapySettings
+
 logger = logging.getLogger("scapy_mcp.tools.capture")
 
 _SESSIONS: dict[str, Any] = {}
-_EXECUTOR: Optional[ThreadPoolExecutor] = None
+_EXECUTOR: ThreadPoolExecutor | None = None
 
 
 def _executor(settings: ScapySettings) -> ThreadPoolExecutor:
