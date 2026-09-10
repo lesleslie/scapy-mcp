@@ -1,0 +1,11 @@
+{
+  "author": {
+    "name": "Bodai"
+  },
+  "description": "Bodai plugin for the Scapy packet crafting and dissection MCP server.",
+  "keywords": ["bodai", "mcp", "scapy", "packet-analysis"],
+  "mcpServers": "./.mcp.json",
+  "name": "scapy",
+  "schema_version": "1.0.0",
+  "version": "0.1.0"
+}
