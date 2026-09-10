@@ -36,3 +36,40 @@ def test_coverage_floor_is_70() -> None:
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
     addopts = pyproject["tool"]["pytest"]["ini_options"]["addopts"]
     assert "--cov-fail-under=85" in addopts
+
+
+def test_entry_point_delegates_to_cli(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``scapy-mcp`` console script resolves to ``__main__.main``, which
+    must delegate to ``scapy_mcp.cli.main`` and ultimately call
+    ``uvicorn.run`` with the configured port. This is the regression
+    guard for the 0.1.0/0.1.1 scaffold stub that printed "not yet
+    implemented" instead of starting the server.
+    """
+    from scapy_mcp import __main__ as entry
+
+    calls: list[dict] = []
+
+    class _FakeASGI:
+        pass
+
+    class _FakeRuntime:
+        def build_asgi_app(self):
+            return _FakeASGI()
+
+    class _FakeSettings:
+        http_port = 3056
+
+    monkeypatch.setattr("scapy_mcp.cli.get_settings", lambda: _FakeSettings())
+    monkeypatch.setattr(
+        "scapy_mcp.cli.build_runtime",
+        lambda *, settings: _FakeRuntime(),
+    )
+
+    def _fake_uvicorn_run(asgi, host, port, log_level):
+        calls.append({"host": host, "port": port, "log_level": log_level})
+
+    monkeypatch.setattr("scapy_mcp.cli.uvicorn.run", _fake_uvicorn_run)
+
+    rc = entry.main()
+    assert rc == 0
+    assert calls == [{"host": "127.0.0.1", "port": 3056, "log_level": "info"}]

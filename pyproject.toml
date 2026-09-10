@@ -113,11 +113,6 @@ ignore-words-list = "nd"
 paths = ["scapy_mcp"]
 deps-file = "pyproject.toml"
 sections = ["project.dependencies"]
-# Both are mandatory per the plan's Global Constraints but are not imported
-# until Phase 1 (mcp-common supplies the health/baseline tool surface in
-# server.py; httpx2 is the ecosystem-standard HTTP client). Declared now so the
-# dependency set is stable; remove these exclusions once Phase 1 imports them.
-exclude-deps = ["httpx2", "mcp-common"]
 
 [[tool.refurb.amend]]
 # The settings tests assert the *exact* closed-position defaults for the

@@ -1,19 +1,20 @@
 """scapy-mcp CLI entry point.
 
-Scaffold stub. Real entry point will dispatch to the FastMCP server
-once the server module is implemented.
+Builds the FastMCP ASGI app via :class:`scapy_mcp.server.Runtime` and
+serves it on uvicorn (so the custom ``/readyz`` route is mounted).
+Delegates to :func:`scapy_mcp.cli.main`.
 """
 
 from __future__ import annotations
 
 import sys
 
+from scapy_mcp.cli import main as _cli_main
+
 
 def main() -> int:
-    """Placeholder entry point. Prints version and exits."""
-    from scapy_mcp import __version__
-
-    print(f"scapy-mcp {__version__} (scaffold — not yet implemented)")
+    """Entry point declared in pyproject ``[project.scripts]``."""
+    _cli_main()
     return 0
 
 
