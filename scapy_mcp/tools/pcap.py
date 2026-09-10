@@ -98,13 +98,36 @@ def read_pcap(
     limit: int = 100,
     offset: int = 0,
 ) -> dict:
-    """Read summaries; cap by ``limit`` and ``pcap_read_max_bytes`` (best-effort)."""
+    """Read packet summaries from a pcap at ``path``.
+
+    Enforces the ``pcap_read_max_bytes`` ceiling *before* invoking
+    :func:`scapy.utils.rdpcap` so a multi-GB file cannot exhaust memory
+    by being loaded whole. ``offset`` and ``limit`` window into the
+    resulting packet list, which is then summarised and returned.
+
+    The ``path`` is operator-provided (a file produced by ``write_pcap``
+    or a pre-existing capture on disk); containment under
+    ``pcap_write_dir`` is the *write* path's concern, not this one's.
+    """
     p = Path(path)
     if not p.exists():
         FEEDS["pcap"].record_cycle(error=f"file not found: {path}")
         raise ConfigurationError(
             f"file not found: {path}",
             context={"path": path},
+        )
+    file_size = p.stat().st_size
+    if file_size > settings.pcap_read_max_bytes:
+        FEEDS["pcap"].record_cycle(
+            error=f"file size {file_size} exceeds pcap_read_max_bytes {settings.pcap_read_max_bytes}",
+        )
+        raise ConfigurationError(
+            f"pcap file size {file_size} exceeds pcap_read_max_bytes {settings.pcap_read_max_bytes}",
+            context={
+                "path": path,
+                "size_bytes": file_size,
+                "max_bytes": settings.pcap_read_max_bytes,
+            },
         )
     packets = rdpcap(str(p))
     window = packets[offset : offset + limit]
