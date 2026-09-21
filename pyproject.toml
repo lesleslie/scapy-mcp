@@ -77,8 +77,7 @@ ignore = ["E501"]
 # import has to be a real runtime import — TC002 cannot apply here. Mirror
 # the same exemption for the local `AuthConfig | None` annotation in server.py
 # since `auth_cfg` is also used at runtime (not just as a type annotation).
-# See project memory `pydantic-future-annotations-forward-ref.md` (opera-cloud-mcp,
-# mahavishnu prefect_models — 31+32+5 failures all fixed by reverting this rule).
+# See project memory `pydantic-future-annotations-forward-ref.md`.
 "scapy_mcp/config/settings.py" = ["TC002"]
 "scapy_mcp/server.py" = ["TC002"]
 
