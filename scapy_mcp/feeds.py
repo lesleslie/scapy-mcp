@@ -1,6 +1,6 @@
 """Feed registry — five feeds, two optional, four wiring-discipline signals.
 
-Wiring discipline (Bodai MCP §7) requires every tool to expose
+Wiring discipline (mcp-common §7) requires every tool to expose
 ``feed.entities_count``, ``feed.last_updated_timestamp``, ``feed.errors_total``,
 and ``cycles_total``. The :class:`FeedState` Pydantic model backs ``/health``
 and ``/readyz``; ``required_feeds_healthy`` aggregates them.

@@ -1,6 +1,6 @@
 """Feed registry tests — five feeds, two optional, four mandatory signals.
 
-The wiring-discipline contract (Bodai MCP §7) requires every tool to expose
+The wiring-discipline contract (mcp-common §7) requires every tool to expose
 ``feed.entities_count``, ``feed.last_updated_timestamp``, ``feed.errors_total``,
 and ``cycles_total``. These tests pin the FeedState Pydantic model that backs
 ``/health`` and ``/readyz``.
