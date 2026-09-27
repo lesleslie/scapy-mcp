@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scapy-mcp"
-version = "0.1.1"
+version = "0.1.2"
 description = "MCP server wrapping Scapy — packet crafting, dissection, and live capture"
 readme = "README.md"
 license = "BSD-3-Clause"
