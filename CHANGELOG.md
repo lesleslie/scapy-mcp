@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - auth: Wire BearerTokenMiddleware into Runtime lifespan
 - Call validate_auth_config at startup
-- scapy-mcp: Capture start/stop/read with /dev/bpf* probe
+- scapy-mcp: Capture start/stop/read with /dev/bpf\* probe
 - scapy-mcp: Craft + dissect tools with malformed-input typed errors
 - scapy-mcp: Deterministic PCAP fixture generator + 6 fixtures
 - scapy-mcp: Emission controller (4 controls + probe cap) and LayerSpec union

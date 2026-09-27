@@ -3514,7 +3514,6 @@ version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
-    { name = "httpx2" },
     { name = "mcp-common" },
     { name = "oneiric" },
     { name = "pydantic" },
@@ -3527,6 +3526,7 @@ dev = [
     { name = "bandit" },
     { name = "crackerjack" },
     { name = "hatchling" },
+    { name = "httpx2" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -3545,7 +3545,7 @@ requires-dist = [
     { name = "crackerjack", marker = "extra == 'dev'", specifier = ">=0.30.0" },
     { name = "fastmcp", specifier = ">=2.12.0" },
     { name = "hatchling", marker = "extra == 'dev'", specifier = ">=1.25.0" },
-    { name = "httpx2", specifier = ">=0.28.1" },
+    { name = "httpx2", marker = "extra == 'dev'", specifier = ">=0.28.1" },
     { name = "mcp-common", editable = "../mcp-common" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.9.0" },
     { name = "oneiric", specifier = ">=0.16.0" },
