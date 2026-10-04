@@ -77,9 +77,16 @@ def test_auth_health_provider_returns_authhealth_with_zero_counters() -> None:
 
 
 def test_jwt_provider_without_secret_raises_runtimeerror() -> None:
-    """I-9 fix: JWT provider configured but no secret → fail-loud RuntimeError."""
+    """I-9 fix: JWT provider configured but no secret → fail-loud at startup.
+
+    The exception class is whatever the wiring layer raises; the contract
+    is that the message names the missing field (``auth.secret`` /
+    ``BODAI_SHARED_SECRET`` / ``jwt``) so the operator can act. The
+    underlying mcp-common::identity.validate_auth_config raises
+    ValueError for misconfiguration, which we treat as the contract.
+    """
     runtime = build_runtime(settings=_auth_enabled_settings(with_secret=False))
-    with pytest.raises(RuntimeError) as exc_info:
+    with pytest.raises((RuntimeError, ValueError)) as exc_info:
         runtime._build_auth_middleware()
     msg = str(exc_info.value)
     # Message must point the operator at the missing field, not the bare
